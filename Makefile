@@ -25,35 +25,3 @@ get:
 clean:
 	rm -rf ./target
 	rm -f ./output.ipynb
-
-# Example Makefile for building Kotlin with ANTLR
-
-# # Define the Kotlin source and target directories
-# SRC_DIR = ./src/backend
-# TARGET_DIR = ./target
-# ANTLR_SRC = ./src
-# ANTLR_TARGET = $(TARGET_DIR)
-
-# # Define the path to the ANTLR jar
-# ANTLR_JAR = /usr/local/lib/antlr-4.11.1-complete.jar
-
-# # Create the target directory if it doesn't exist
-# $(TARGET_DIR):
-# 	mkdir -p $(TARGET_DIR)
-
-# # Compile Kotlin files
-# compile_kotlin: $(TARGET_DIR)
-# 	kotlinc -cp $(ANTLR_JAR):$(TARGET_DIR) -d $(TARGET_DIR) $(SRC_DIR)/*.kt
-
-# # Generate source files from ANTLR grammars
-# generate_antlr_sources: $(TARGET_DIR)
-# 	java -jar $(ANTLR_JAR) -no-visitor -no-listener -o $(ANTLR_TARGET) $(ANTLR_SRC)/*.g4
-
-# # Default target to build everything
-# build: compile_kotlin generate_antlr_sources
-
-# # Clean up the target directory
-# clean:
-# 	rm -rf $(TARGET_DIR)
-
-# .PHONY: build compile_kotlin generate_antlr_sources clean
