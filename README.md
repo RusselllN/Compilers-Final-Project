@@ -15,49 +15,7 @@
 
 This README provides a comprehensive guide on setting up a Jupyter Notebook environment for Kotlin with ANTLR integration. It covers everything from installing Jupyter, configuring the Kotlin kernel, adjusting the Python version, and setting up ANTLR.
 
-## 1. Setting Up Jupyter Notebook
-
-### Prerequisites
-- Ensure Python (Python 3 is recommended) is installed on your system.
-- Jupyter Notebook or JupyterLab is needed.
-
-### Installation
-If Jupyter is not already installed, it can be installed via pip:
-
-    pip install notebook  # For Jupyter Notebook
-    # or
-    pip install jupyterlab  # For JupyterLab
-
-## 2. Configuring Kotlin Kernel
-
-### Install Kotlin Kernel
-To add Kotlin as a kernel to your Jupyter setup:
-
-    pip install kotlin-jupyter-kernel
-
-### Verify Kernel Installation
-To confirm the installation, list the installed Jupyter kernels:
-
-    jupyter kernelspec list
-
-### Start Jupyter
-Launch Jupyter Notebook or JupyterLab using:
-
-    jupyter notebook
-    # or
-    jupyter lab
-
-## 3. Adjusting Python Version in Kernel JSON
-
-If the default Python version needs adjustment (e.g., changing "python" to "python3"), modify the `kernel.json` file:
-
-    {
-      "argv": ["python3", "-m", "ipykernel_launcher", "-f", "{connection_file}"],
-      "display_name": "Python 3",
-      "language": "python"
-    }
-
-## 4. Setting Up ANTLR
+## 1. Setting Up ANTLR
 
 ### Install ANTLR
 Install ANTLR using the following command, which also sets it up within the Jupyter environment:
@@ -78,7 +36,65 @@ Import ANTLR and use your generated lexer and parser:
     import org.antlr.v4.runtime.tree.*
     // Reference your generated lexer and parser
 
-## 5. Compile and Run ANTLR Grammar
+## 2. Setting up Kotlin
+Install Kotlin with:
+
+sudo apt update
+sudo apt install kotlin
+
+### There might be additional configuration in your environment required to get Kotlin correctly running
+Lorem Ipsum
+
+## 3. Setting up Java
+Install java to ensure you can compile the ANTLR files.
+
+sudo apt insall [java]
+
+## 4. Setting Up Jupyter Notebook
+
+### Prerequisites
+- Ensure Python (Python 3 is recommended) is installed on your system.
+- Jupyter Notebook or JupyterLab is needed.
+
+### Installation
+If Jupyter is not already installed, it can be installed via pip:
+
+    pip install notebook  # For Jupyter Notebook
+    # or
+    pip install jupyterlab  # For JupyterLab
+
+## 5. Configuring Kotlin Kernel
+
+### Install Kotlin Kernel
+To add Kotlin as a kernel to your Jupyter setup:
+
+    pip install kotlin-jupyter-kernel
+
+### Verify Kernel Installation
+To confirm the installation, list the installed Jupyter kernels:
+
+    jupyter kernelspec list
+
+### Start Jupyter
+Launch Jupyter Notebook or JupyterLab using:
+
+    jupyter notebook
+    # or
+    jupyter lab
+
+## 6. Adjusting Python Version in Kernel JSON
+
+If the default Python version needs adjustment (e.g., changing "python" to "python3"), modify the `kernel.json` file:
+
+    {
+      "argv": ["python3", "-m", "ipykernel_launcher", "-f", "{connection_file}"],
+      "display_name": "Python 3",
+      "language": "python"
+    }
+
+
+
+## 7. Compile and Run ANTLR Grammar
 
 To generate your lexer and parser from your ANTLR grammar file (e.g., `PL.g4`):
 
