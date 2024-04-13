@@ -210,3 +210,9 @@ class Ifelse(
         }
     }
 }
+
+enum class Type {
+    NUMBER,
+    STRING,
+    BOOLEAN
+}

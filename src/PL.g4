@@ -33,27 +33,76 @@ block returns [Block blockValue]
     ;
 
     
-expression returns [Expr expressionValue]
-    : OPEN_BRACE expression CLOSE_BRACE {$expressionValue = new ParenthesizedExpression($expression.expressionValue); }
-    | e1=expression ADD e2=expression {$expressionValue = new Arithmetic(Operator.ADD, $e1.expressionValue, $e2.expressionValue); }
-    | e1=expression SUB e2=expression {$expressionValue = new Arithmetic(Operator.SUB, $e1.expressionValue, $e2.expressionValue);}
-    | e1=expression MUL e2=expression {$expressionValue = new Arithmetic(Operator.MUL, $e1.expressionValue, $e2.expressionValue);}
-    | e1=expression DIV e2=expression {$expressionValue = new Arithmetic(Operator.DIV, $e1.expressionValue, $e2.expressionValue);}
-    | e1=expression LT e2=expression {$expressionValue = new Cmp(CmpOperators.LT, $e1.expressionValue, $e2.expressionValue);}
-    | e1=expression GT e2=expression {$expressionValue = new Cmp(CmpOperators.GT, $e1.expressionValue, $e2.expressionValue);}
-    | e1=expression EQ e2=expression {$expressionValue = new Cmp(CmpOperators.EQ, $e1.expressionValue, $e2.expressionValue);}
-    | e1=expression LTEQ e2=expression {$expressionValue = new Cmp(CmpOperators.LTEQ, $e1.expressionValue, $e2.expressionValue);}
-    | e1=expression GTEQ e2=expression {$expressionValue = new Cmp(CmpOperators.GTEQ, $e1.expressionValue, $e2.expressionValue);}
+expression returns [Expr expressionValue, Type t]
+    : OPEN_BRACE expression CLOSE_BRACE {$expressionValue = new ParenthesizedExpression($expression.expressionValue); $t = $expression.t;}
+    | e1=expression ADD e2=expression {$expressionValue = new Arithmetic(Operator.ADD, $e1.expressionValue, $e2.expressionValue); $t = Type.NUMBER;}
+    | e1=expression SUB e2=expression {$expressionValue = new Arithmetic(Operator.SUB, $e1.expressionValue, $e2.expressionValue); $t = Type.NUMBER;}
+    | e1=expression MUL e2=expression {$expressionValue = new Arithmetic(Operator.MUL, $e1.expressionValue, $e2.expressionValue); $t = Type.NUMBER;}
+    | e1=expression DIV e2=expression {$expressionValue = new Arithmetic(Operator.DIV, $e1.expressionValue, $e2.expressionValue); $t = Type.NUMBER;}
+    | e1=expression LT e2=expression {
+        if ($e1.t != Type.NUMBER || $e2.t != Type.NUMBER) {
+            throw new IllegalArgumentException("Type mismatch: both operands of a '<' operation must be numeric");
+        }
+        $expressionValue = new Cmp(CmpOperators.LT, $e1.expressionValue, $e2.expressionValue);
+        $t = Type.BOOLEAN;
+    }
+    | e1=expression GT e2=expression {
+        if ($e1.t != Type.NUMBER || $e2.t != Type.NUMBER) {
+            throw new IllegalArgumentException("Type mismatch: both operands of a '>' operation must be numeric");
+        }
+        $expressionValue = new Cmp(CmpOperators.GT, $e1.expressionValue, $e2.expressionValue);
+        $t = Type.BOOLEAN;
+    }
+    // | e1=expression EQ e2=expression {$expressionValue = new Cmp(CmpOperators.EQ, $e1.expressionValue, $e2.expressionValue); }
+    | e1=expression EQ e2=expression {
+        if ($e1.t != $e2.t) {
+            throw new IllegalArgumentException("Type mismatch: operands of an 'EQ' operation must be of the same type");
+        }
+        $expressionValue = new Cmp(CmpOperators.EQ, $e1.expressionValue, $e2.expressionValue);
+        $t = Type.BOOLEAN;
+    }
+    | e1=expression LTEQ e2=expression {
+        if ($e1.t != Type.NUMBER || $e2.t != Type.NUMBER) {
+            throw new IllegalArgumentException("Type mismatch: both operands of a '<' operation must be numeric");
+        }
+        $expressionValue = new Cmp(CmpOperators.LT, $e1.expressionValue, $e2.expressionValue);
+        $t = Type.BOOLEAN;
+    }
+    | e1=expression GTEQ e2=expression {
+        if ($e1.t != Type.NUMBER || $e2.t != Type.NUMBER) {
+            throw new IllegalArgumentException("Type mismatch: both operands of a '>' operation must be numeric");
+        }
+        $expressionValue = new Cmp(CmpOperators.GT, $e1.expressionValue, $e2.expressionValue);
+        $t = Type.BOOLEAN;
+    }
     | ID OPEN_BRACE expressions CLOSE_BRACE { $expressionValue = new Invoke($ID.text, $expressions.expressionListValue); }
-    | ID { $expressionValue = new Deref($ID.text); }
-    | NUMERIC { $expressionValue = new IntLiteral($NUMERIC.text); }
-    | STRING { $expressionValue = new StringLiteral($STRING.text); }
-    | BOOLEAN { $expressionValue = new BooleanLiteral($BOOLEAN.text); }
-    | e1=expression CONCAT e2=expression {$expressionValue = new Concat($e1.expressionValue, $e2.expressionValue);}
+    | ID { 
+        $expressionValue = new Deref($ID.text);
+    }
+    // | NUMERIC { $expressionValue = new IntLiteral($NUMERIC.text); }
+    // | STRING { $expressionValue = new StringLiteral($STRING.text); }
+    // | BOOLEAN { $expressionValue = new BooleanLiteral($BOOLEAN.text); }
+    | NUMERIC { $expressionValue = new IntLiteral($NUMERIC.text); $t = Type.NUMBER; }
+    | STRING { $expressionValue = new StringLiteral($STRING.text); $t = Type.STRING; }
+    | BOOLEAN { $expressionValue = new BooleanLiteral($BOOLEAN.text); $t = Type.BOOLEAN; }
+    // | e1=expression CONCAT e2=expression {$expressionValue = new Concat($e1.expressionValue, $e2.expressionValue);}
+    // If both tyes are not string, then we have a problem
+    | e1=expression CONCAT e2=expression {
+        if ($e1.t != Type.STRING && $e2.t != Type.STRING) {
+            throw new IllegalArgumentException("Type mismatch: at least one operand of a CONCAT operation must be a string");
+        }
+        $expressionValue = new Concat($e1.expressionValue, $e2.expressionValue);
+        $t = Type.STRING;
+    }
     ;
     
+// assignment returns [Assign var]
+//     : ID EQUAL expression {$var = new Assign($ID.text, $expression.expressionValue);}
+//     ;
 assignment returns [Assign var]
-    : ID EQUAL expression {$var = new Assign($ID.text, $expression.expressionValue);}
+    : type ID EQUAL expression { 
+        $var = new Assign($ID.text, $expression.expressionValue);
+    }
     ;
     
 loop returns [Loop loopResult]
@@ -89,6 +138,17 @@ expressions returns [List<Expr> expressionListValue]
       (expression { $expressionListValue.add($expression.expressionValue); } 
       (COMMA expression { $expressionListValue.add($expression.expressionValue); })* )
     ;
+
+type returns [Type t]
+    : TYPE_NUMBER
+    | TYPE_STRING
+    | TYPE_BOOLEAN
+    ;
+
+// Types
+TYPE_NUMBER : 'number';
+TYPE_STRING : 'string';
+TYPE_BOOLEAN : 'bool';
 
 // Statements
 FOR_STATEMENT : 'for';
