@@ -2,15 +2,21 @@ package backend
 
 abstract class Expr {
     abstract fun eval(runtime:Runtime):Data
+    abstract fun typeCheck(runtime: Runtime): Type
 }
 
 class NoneExpr(): Expr() {
     override fun eval(runtime:Runtime) = None
+    override fun typeCheck(runtime: Runtime) = Type.NONE
 }
 
 class ParenthesizedExpression(private val expression: Expr) : Expr() {
     override fun eval(runtime: Runtime): Data {
         return expression.eval(runtime)
+    }
+
+    override fun typeCheck(runtime: Runtime): Type {
+        return expression.typeCheck(runtime)
     }
 }
 
@@ -44,13 +50,35 @@ class Arithmetic(val operator: Operator, val left: Expr, val right: Expr) : Expr
             Operator.DIV -> IntData(leftResult.value / rightResult.value)
         }
     }
+
+    override fun typeCheck(runtime: Runtime): Type {
+        val leftType = left.typeCheck(runtime)
+        val rightType = right.typeCheck(runtime)
+
+        if (leftType != Type.NUMBER && rightType != Type.NUMBER) {
+            throw RuntimeException("Non-integer operands for arithmetic operation")
+        }
+
+        return Type.NUMBER
+    }
 }
 
-class Assign(val name: String, val expr: Expr) : Expr() {
+class Assign(val name: String, val expr: Expr, val type: Type?) : Expr() {
     override fun eval(runtime: Runtime): Data {
         val value = expr.eval(runtime)
+        if (value.type != type) {
+            throw RuntimeException("Type mismatch: ${value.type} and ${type}")
+        }
         runtime.symbolTable[name] = value
         return None
+    }
+
+    override fun typeCheck(runtime: Runtime): Type {
+        val exprType = expr.typeCheck(runtime)
+        if (type != null && exprType != type) {
+            throw RuntimeException("Type mismatch: $exprType and $type")
+        }
+        return exprType
     }
 }
 
@@ -63,6 +91,15 @@ class Deref(
             return v
         } else {
             return None
+        }
+    }
+
+    override fun typeCheck(runtime: Runtime): Type {
+        val v = runtime.symbolTable[name]
+        if(v != null) {
+            return v.type
+        } else {
+            throw RuntimeException("Variable $name not found.")
         }
     }
 }
@@ -93,18 +130,51 @@ class Invoke(
             f.parameters.zip(argumentData).toMap()
         ))
     }
+
+    override fun typeCheck(runtime: Runtime): Type {
+        val f = runtime.symbolTable[funcname]
+        if(f == null) {
+            throw Exception("$funcname does not exist.")
+        }
+        if(f !is FunctionData) {
+            throw Exception("$funcname is not a function.")
+        }
+        if(arguments.size != f.parameters.size) {
+            throw Exception("$funcname expects ${f.parameters.size} arguments, but ${arguments.size} given.")
+        }
+
+        val argumentTypes = arguments.map {
+            it.typeCheck(runtime)
+        }
+
+        val expectedTypes = f.parameters.map { Type.STRING }
+        if(argumentTypes != expectedTypes) {
+            throw Exception("Argument types do not match. Expected: $expectedTypes, but found: $argumentTypes")
+        }
+
+        return f.returnType
+    }
 }
 
 class Block(val exprs:List<Expr>):Expr() {
     override fun eval(runtime:Runtime):Data
     = exprs.map { it.eval(runtime) }.last()
+
+    override fun typeCheck(runtime: Runtime): Type {
+        return exprs.map { it.typeCheck(runtime) }.last()
+    }
 }
 
-class FunctionDef(val name: String, val parameters: List<String>, val body: Expr) : Expr() {
+class FunctionDef(val name: String, val parameters: List<String>, val body: Expr, val returnType: Type) : Expr() {
     override fun eval(runtime: Runtime): Data {
-        val functionData = FunctionData(name, parameters, body)
+        val functionData = FunctionData(name, parameters, body, returnType)
         runtime.symbolTable[name] = functionData
         return None
+    }
+
+    override fun typeCheck(runtime: Runtime): Type {
+        val subscope = runtime.subscope(mapOf(name to FunctionData(name, parameters, body, returnType)))
+        return body.typeCheck(subscope)
     }
 }
 
@@ -117,6 +187,16 @@ class Loop(val init: Assign, val condition: Expr, val post: Assign, val body: Ex
         }
         return None
     }
+
+    override fun typeCheck(runtime: Runtime): Type {
+        val conditionType = condition.typeCheck(runtime)
+
+        if (conditionType != Type.BOOL) {
+            throw RuntimeException("Condition must be a boolean")
+        }
+
+        return conditionType
+    }
 }
 
 
@@ -125,16 +205,22 @@ class StringLiteral(val lexeme:String):Expr() {
 
     override fun eval(runtime: Runtime): Data =
         StringData(strippedValue)
+
+    override fun typeCheck(runtime: Runtime): Type = Type.STRING
 }
 
 class IntLiteral(val lexeme:String):Expr() {
     override fun eval(runtime:Runtime):Data 
     = IntData(Integer.parseInt(lexeme))
+
+    override fun typeCheck(runtime: Runtime): Type = Type.NUMBER
 }
 
 class BooleanLiteral(val lexeme:String):Expr() {
     override fun eval(runtime:Runtime): Data = 
     BooleanData(lexeme.equals("true"))
+
+    override fun typeCheck(runtime: Runtime): Type = Type.BOOL
 }
 
 class Print(
@@ -146,6 +232,13 @@ class Print(
             println(data)
         }
         return None
+    }
+
+    override fun typeCheck(runtime: Runtime): Type {
+        exprs.forEach {
+            it.typeCheck(runtime)
+        }
+        return Type.NONE
     }
 }
 
@@ -161,6 +254,19 @@ class Concat(val left: Expr, val right: Expr) : Expr() {
             // Handle error or perform type coercion as necessary.
             throw RuntimeException("Concatenation operands must be strings.")
         }
+    }
+
+    override fun typeCheck(runtime: Runtime): Type {
+        val leftType = left.typeCheck(runtime)
+        val rightType = right.typeCheck(runtime)
+
+        if (!(leftType == Type.STRING && rightType == Type.NUMBER) && 
+            !(leftType == Type.NUMBER && rightType == Type.STRING) && 
+            !(leftType == Type.STRING && rightType == Type.STRING)) {
+            throw RuntimeException("Expecting at least one string and a number or two strings. Found: $leftType and $rightType")
+        }
+
+        return Type.STRING
     }
 }
 
@@ -194,6 +300,17 @@ class Cmp(
             throw Exception("Cannot perform comparison")
         }
     }
+
+    override fun typeCheck(runtime: Runtime): Type {
+        val leftType = left.typeCheck(runtime)
+        val rightType = right.typeCheck(runtime)
+
+        if (leftType != rightType) {
+            throw RuntimeException("Error: Cannot compare ${leftType} to ${rightType}")
+        }
+
+        return Type.BOOL
+    }
 }
 
 class Ifelse(
@@ -209,10 +326,28 @@ class Ifelse(
             falseExpr.eval(runtime)
         }
     }
+
+    override fun typeCheck(runtime: Runtime): Type {
+        val condType = cond.typeCheck(runtime)
+        val trueType = trueExpr.typeCheck(runtime)
+        val falseType = falseExpr.typeCheck(runtime)
+
+        if (condType != Type.BOOL) {
+            throw RuntimeException("Condition must be a boolean.")
+        }
+
+        if (trueType != falseType) {
+            throw RuntimeException("Type mismatch in if-else expression.")
+        }
+
+        return trueType
+    }
 }
 
 enum class Type {
     NUMBER,
     STRING,
-    BOOLEAN
+    BOOL,
+    FUNC, 
+    NONE
 }

@@ -1,8 +1,8 @@
 .PHONY: build run clean
 
-name = assignment_3
+name = final_project
 
-CLASSPATH = /usr/local/lib/antlr-4.11.1-complete.jar:./target
+CLASSPATH = /usr/local/lib/antlr-4.11.1-complete.jar:/usr/bin/kotlin-stdlib-1.9.23:./target
 JAVAC = javac -cp $(CLASSPATH)
 ANTLR = java -jar /usr/local/lib/antlr-4.11.1-complete.jar -no-visitor -no-listener
 TESTRIG = java -cp $(CLASSPATH) org.antlr.v4.gui.TestRig
@@ -19,8 +19,6 @@ run:
 		grep -v '\[main\]' | grep -v '\[IOPUB\]' | grep -v '\[Thread-' | \
 	       	grep -v '\[NbConvertApp\]'
 
-get:
-	cp -R -T ~/public/$(name) ~/work/$(name)/
 
 clean:
 	rm -rf ./target
