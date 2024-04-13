@@ -2,7 +2,7 @@
 
 name = final_project
 
-CLASSPATH = /usr/local/lib/antlr-4.11.1-complete.jar:/usr/bin/kotlin-stdlib-1.9.23:./target
+CLASSPATH = /usr/local/lib/antlr-4.11.1-complete.jar:./target
 JAVAC = javac -cp $(CLASSPATH)
 ANTLR = java -jar /usr/local/lib/antlr-4.11.1-complete.jar -no-visitor -no-listener
 TESTRIG = java -cp $(CLASSPATH) org.antlr.v4.gui.TestRig
