@@ -66,7 +66,7 @@ class Arithmetic(val operator: Operator, val left: Expr, val right: Expr) : Expr
 class Assign(val name: String, val expr: Expr, val type: Type?) : Expr() {
     override fun eval(runtime: Runtime): Data {
         val value = expr.eval(runtime)
-        if (value.type != type) {
+        if (value.type != type && value.type != Type.NUMBER) {
             throw RuntimeException("Type mismatch: ${value.type} and ${type}")
         }
         runtime.symbolTable[name] = value
