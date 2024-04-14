@@ -24,6 +24,7 @@ statement returns [Expr statementResult]
     | loop { $statementResult= $loop.loopResult; }
     | funDef { $statementResult= $funDef.funcResult; }
     | ifStatement { $statementResult = $ifStatement.ifelseResult; }
+    | list_assignment SEMICOLON { $statementResult = $list_assignment.var; }
     ;
     
 block returns [Block blockValue]
@@ -78,6 +79,11 @@ expression returns [Expr expressionValue, Type t]
     | NUMERIC { $expressionValue = new IntLiteral($NUMERIC.text); $t = Type.NUMBER; }
     | STRING { $expressionValue = new StringLiteral($STRING.text); $t = Type.STRING; }
     | BOOLEAN { $expressionValue = new BooleanLiteral($BOOLEAN.text); $t = Type.BOOL; }
+    | x=LIST_ELEMENTS {$expressionValue = new ListLiteral($x.text); }
+    | 'Index ' y=ID AT z=NUMERIC {$expressionValue = new ListIndex($y.text, $z.text);}
+    | APPEND x=ID y=LIST_ELEMENTS {$expressionValue = new ListAppend($x.text, $y.text);}
+    | OPEN_BRACE_SQUARE x=ID OPEN_BRACE 'val' CLOSE_BRACE ' for val in ' y=ID CLOSE_BRACE_SQUARE
+        {{$expressionValue = new ListComp($x.text, $y.text);}}
     // If both tyes are not string, then we have a problem
     | e1=expression CONCAT e2=expression {
         if ($e1.t != Type.STRING && $e2.t != Type.STRING) {
@@ -87,7 +93,27 @@ expression returns [Expr expressionValue, Type t]
         $t = Type.STRING;
     }
     ;
+    
+//list returns [ListLiteral l]
+  //  : x=LIST_ELEMENTS
+    //{$l = new ListLiteral($x.text);};
+    
+list_assignment returns [ListAssign var]
+    : 'List' x=ID EQUAL y=expression
+    {$var = new ListAssign($x.text, new ListLiteral($y.text));};
+    
+//list_index returns [ListIndex val]
+  //  : 'Index ' x=ID AT y=NUMERIC
+    //{$val = new ListIndex($x.text, $y.text);};
 
+//list_append returns [ListAppend l]
+  //  : APPEND x=ID y=LIST_ELEMENTS
+    //{$l = new ListAppend($x.text, $y.text);};
+
+//list_comp returns [ListComp l]
+  //  : OPEN_BRACE_SQUARE x=ID OPEN_BRACE 'x' CLOSE_BRACE ' for x in ' y=ID CLOSE_BRACE_SQUARE
+    //{$l = new ListComp($x.text, $y.text);}
+    
 invoke returns [Invoke invokeValue]
     : ID OPEN_BRACE expressions CLOSE_BRACE {
         $invokeValue = new Invoke($ID.text, $expressions.expressionListValue);
@@ -96,7 +122,7 @@ invoke returns [Invoke invokeValue]
     
 assignment returns [Assign var]
     : ID EQUAL expression {
-        $var = new Assign($ID.text, $expression.expressionValue, $expression.t);
+        $var = new Assign($ID.text, $expression.expressionValue, $expression.t); 
     }
     ;
     
@@ -184,6 +210,11 @@ OPEN_BLOCK : '{';
 CLOSE_BLOCK : '}';
 COMMA : ',';
 SEMICOLON : ';';
+OPEN_BRACE_SQUARE : '[';
+CLOSE_BRACE_SQUARE : ']';
+AT: '@';
+APPEND: 'Append ';
+LIST_ELEMENTS: OPEN_BRACE_SQUARE NUMERIC (COMMA NUMERIC)* CLOSE_BRACE_SQUARE;
 
 
 
