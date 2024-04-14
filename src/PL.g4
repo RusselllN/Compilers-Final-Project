@@ -84,6 +84,7 @@ expression returns [Expr expressionValue, Type t]
     | APPEND x=ID y=LIST_ELEMENTS {$expressionValue = new ListAppend($x.text, $y.text);}
     | OPEN_BRACE_SQUARE x=ID OPEN_BRACE 'val' CLOSE_BRACE ' for val in ' y=ID CLOSE_BRACE_SQUARE
         {{$expressionValue = new ListComp($x.text, $y.text);}}
+    | 'Slice ' x=ID OPEN_BRACE_SQUARE y=NUMERIC ':' z=NUMERIC CLOSE_BRACE_SQUARE {$expressionValue = new ListSlice($x.text, $y.text, $z.text);}
     // If both tyes are not string, then we have a problem
     | e1=expression CONCAT e2=expression {
         if ($e1.t != Type.STRING && $e2.t != Type.STRING) {
@@ -210,11 +211,12 @@ OPEN_BLOCK : '{';
 CLOSE_BLOCK : '}';
 COMMA : ',';
 SEMICOLON : ';';
+COLON : ':';
 OPEN_BRACE_SQUARE : '[';
 CLOSE_BRACE_SQUARE : ']';
-AT: '@';
-APPEND: 'Append ';
-LIST_ELEMENTS: OPEN_BRACE_SQUARE NUMERIC (COMMA NUMERIC)* CLOSE_BRACE_SQUARE;
+AT : '@';
+APPEND : 'Append ';
+LIST_ELEMENTS : OPEN_BRACE_SQUARE NUMERIC (COMMA NUMERIC)* CLOSE_BRACE_SQUARE;
 
 
 
