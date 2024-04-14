@@ -109,6 +109,24 @@ class ListAppend(val name: String, val list: String) : Expr() {
     }
 }
 
+class ListSlice(val name: String, val left: String, val right: String) : Expr() {
+    override fun eval(runtime:Runtime): Data {
+        val leftInt = left.toInt()
+        val rightInt = right.toInt()
+        val list = (runtime.symbolTable[name] as? ListData)?.value
+        
+        if (list == null || leftInt < 0 || rightInt > list.size || leftInt > rightInt) {
+        throw IllegalArgumentException("Invalid input or indices")
+        }
+        
+        return ListData(list.subList(leftInt, rightInt))
+    }
+    
+    override fun typeCheck(runtime:Runtime): Type {
+        return Type.LIST
+    }
+}
+
 class Deref(
     val name:String
 ): Expr() {
