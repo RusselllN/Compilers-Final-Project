@@ -24,6 +24,11 @@ data class BooleanData(val value: Boolean) : Data() {
     override fun toString() = "Boolean:$value"
 }
 
+data class ListData(val value: MutableList<Int>) : Data() {
+    override val type: Type = Type.LIST
+    override fun toString() = "[" + value.joinToString(", ") + "]"
+}
+
 class FunctionData(
     val name: String,
     val parameters: List<String>,

@@ -26,8 +26,8 @@ enum class Operator {
 
 class Arithmetic(val operator: Operator, val left: Expr, val right: Expr) : Expr() {
     override fun eval(runtime: Runtime): Data {
-        val leftResult = left.eval(runtime)
-        val rightResult = right.eval(runtime)
+        var leftResult = left.eval(runtime)
+        var rightResult = right.eval(runtime)
 
         // Handle string concatenation for multiply operation.
         if (operator == Operator.MUL && leftResult is StringData && rightResult is IntData) {
@@ -82,6 +82,33 @@ class Assign(val name: String, val expr: Expr, val type: Type?) : Expr() {
     }
 }
 
+class ListAssign(val name: String, val list: ListLiteral) : Expr() {
+    override fun eval(runtime:Runtime): Data {
+        runtime.symbolTable[name] = list.eval(runtime)
+        return None
+    }
+    
+    override fun typeCheck(runtime: Runtime): Type {
+        return Type.LIST
+    }
+}
+
+class ListAppend(val name: String, val list: String) : Expr() {
+    override fun eval(runtime:Runtime): Data {
+        val original = (runtime.symbolTable[name] as? ListData)?.value
+            ?: throw IllegalStateException("Variable '$name' is not of type ListData")
+        val clean = list.trim().removeSurrounding("[", "]").trim()
+        val ints = clean.split(",").map { it.trim().toInt() }
+        original.addAll(ints)
+        
+        return ListData(original)
+    }
+    
+    override fun typeCheck(runtime:Runtime): Type {
+        return Type.LIST
+    }
+}
+
 class Deref(
     val name:String
 ): Expr() {
@@ -101,6 +128,34 @@ class Deref(
         } else {
             throw RuntimeException("Variable $name not found.")
         }
+    }
+}
+
+class ListComp(val funcname: String, val list: String) : Expr() {
+    override fun eval(runtime:Runtime): Data {
+        val f = runtime.symbolTable[funcname]
+        if(f == null) {
+            throw Exception("$funcname does not exist.")
+        }
+        if(f !is FunctionData) {
+            throw Exception("$funcname is not a function.")
+        }
+        
+        var newList = mutableListOf<Int>()
+        val originalList = (runtime.symbolTable[list] as? ListData)?.value
+        
+        if (originalList != null) {
+            for (item in originalList) {
+                val newValue = f.body.eval(runtime.subscope(mapOf("x" to IntData(item))))
+                newList.add((newValue as IntData).value)
+            }
+        }
+        
+        return ListData(newList)
+    }
+    
+    override fun typeCheck(runtime:Runtime) : Type {
+        return Type.LIST
     }
 }
 
@@ -221,6 +276,26 @@ class BooleanLiteral(val lexeme:String):Expr() {
     BooleanData(lexeme.equals("true"))
 
     override fun typeCheck(runtime: Runtime): Type = Type.BOOL
+}
+
+class ListLiteral(val lexeme:String):Expr() {
+    override fun eval(runtime:Runtime): Data =
+    ListData((lexeme.replace("[", "").replace("]", "").replace(" ", "").split(",").map { it.toInt() }).toMutableList())
+    
+    override fun typeCheck(runtime:Runtime): Type = Type.LIST 
+}
+
+class ListIndex(val name:String, var index:String): Expr() {
+    override fun eval(runtime: Runtime): Data {
+        val idx = Integer.parseInt(index)
+        val listData = runtime.symbolTable[name] as ListData
+        val valueAtIndex = listData.value.getOrNull(idx)
+            ?: throw IndexOutOfBoundsException("Index $idx out of bounds for list")
+
+        return IntData(valueAtIndex)
+    }
+    
+    override fun typeCheck(runtime:Runtime): Type = Type.NUMBER
 }
 
 class Print(
@@ -349,5 +424,6 @@ enum class Type {
     STRING,
     BOOL,
     FUNC, 
-    NONE
+    NONE,
+    LIST
 }
